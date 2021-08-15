@@ -198,7 +198,7 @@ class Adapter(AvailabilitiesPageInterface):
          self.__adaptee.get_custom_fields()
 
 #client
-class AvailabilitiesPage():
+class AvailabilitiesPage(AvailabilitiesPageInterface):
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
