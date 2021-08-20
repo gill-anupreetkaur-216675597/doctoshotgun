@@ -239,6 +239,22 @@ class CityNotFound(Exception):
     pass
 
 
+
+
+#if not slot:
+
+
+# depending on the country, the slot is returned in a different format. Go figure...
+#if isinstance(slot, dict) and 'start_date' in slot:
+
+#elif isinstance(slot, str):
+
+#elif isinstance(slot, list):
+
+#else:
+
+
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
@@ -438,7 +454,7 @@ class Doctolib(LoginBrowser):
                 log('Slot not found :(', color='red')
             return False
 
-        # depending on the country, the slot is returned in a different format. Go figure...
+            # depending on the country, the slot is returned in a different format. Go figure...
         if isinstance(slot, dict) and 'start_date' in slot:
             slot_date_first = slot['start_date']
             if vac_name != "janssen":
@@ -455,6 +471,7 @@ class Doctolib(LoginBrowser):
         else:
             log('Error while fetching first slot.', color='red')
             return False
+
         if vac_name != "janssen" and not only_second and not only_third:
             assert slot_date_second
         log('found!', color='green')
@@ -702,6 +719,8 @@ class Application:
         parser.add_argument('--code', type=str, default=None, help='2FA code')
         args = parser.parse_args(cli_args if cli_args else sys.argv[1:])
 
+
+
         from types import SimpleNamespace
 
         if args.debug:
@@ -720,27 +739,79 @@ class Application:
             return 1
 
         patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
+
+
+        import abc
+
+        class Context:
+            def __init__(self, state):
+                self._state = state
+            def request(self):
+                self._state.handle()
+
+        class State(metaclass=abc.ABCMeta):
+            @abc.abstractmethod
+            def handle(self):
+                pass
+
+        class ConcreteStateA(State):
+            def handle(self):
+                print(
+                    "It seems that you don't have any Patient "
+                    "registered in your Doctolib account. "
+                    "Please fill your Patient data on Doctolib "
+                    "Website.")
+                return 1
+
+        class ConcreteStateB(State):
+           def handle(self):
+                docto.patient = patients[args.patient]
+
+        class ConcreteStateC(State):
+
+            def handle(self):
+                print('Available patients are:')
+                for i, patient in enumerate(patients):
+                    print('* [%s] %s %s' %
+                          (i, patient['first_name'], patient['last_name']))
+                while True:
+                    print('For which patient do you want to book a slot?',
+                          end=' ', flush=True)
+                    try:
+                        docto.patient = patients[int(sys.stdin.readline().strip())]
+                    except (ValueError, IndexError):
+                        continue
+                    else:
+                        break
+
+        class ConcreteStateD(State):
+
+            def handle(self):
+                docto.patient = patients[0]
+
+        #if len(patients) == 0:
+
+        concrete_state_a = ConcreteStateA()
+        context = Context(concrete_state_a)
+        context.request()
+
         if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
+            concrete_state_b = ConcreteStateB()
+            context = Context(concrete_state_b)
+            context.request()
+
+        #elif len(patients) > 1:
+            concrete_state_c = ConcreteStateC()
+            context = Context(concrete_state_c)
+            context.request()
+
+        #else:
+            concrete_state_d = ConcreteStateD()
+            context = Context(concrete_state_d)
+            context.request()
+
+
+
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
