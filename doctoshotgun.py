@@ -740,6 +740,7 @@ class Application:
 
         patients = docto.get_patients()
 
+     #State design pattern
 
         import abc
 
@@ -788,6 +789,8 @@ class Application:
 
             def handle(self):
                 docto.patient = patients[0]
+
+                #Client
 
         #if len(patients) == 0:
 
