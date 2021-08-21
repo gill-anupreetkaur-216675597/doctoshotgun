@@ -189,7 +189,61 @@ class AppointmentPage(JsonPage):
 
     def is_error(self):
         return 'error' in self.doc
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from typing import List
 
+#OBSERVER DESIGN PATTERN
+
+class Appointment(ABC):
+    @abstractmethod
+    def attach(self, observer: Observer) -> None:
+        pass
+    @abstractmethod
+    def detach(self, observer: Observer) -> None:
+        pass
+    @abstractmethod
+    def notify(self) -> None:
+        pass
+
+class ConcreteAppointment(Appointment):
+    _state: int = None
+    _observers: List[Observer] = []
+
+    def attach(self, observer: Observer) -> None:
+        self._observers.append(observer)
+
+    def detach(self, observer: Observer) -> None:
+        self._observers.remove(observer)
+
+    def notify(self) -> None:
+
+        for observer in self._observers:
+            observer.update(self)
+
+    def some_business_logic(self) -> None:
+
+        self._state = AppointmentPage.get_error()
+        self.notify()
+
+class Observer(ABC):
+    @abstractmethod
+    def update(self, subject: Appointment) -> None:
+        pass
+
+class ConcreteObserverA(Observer):
+    def update(self, subject: Appointment) -> None:
+        if subject._state =="error":
+            print("Appointment not available anymore")
+
+#How client code can use it to notify centers if there is
+# error in appointment to let them know that appointment
+# not available anymore
+
+subject = ConcreteAppointment()
+observer_a = ConcreteObserverA()
+subject.attach(observer_a)
+subject.some_business_logic()
 
 class AppointmentEditPage(JsonPage):
     def get_custom_fields(self):
@@ -450,8 +504,9 @@ class Doctolib(LoginBrowser):
         }
         self.appointment.go(data=json.dumps(data), headers=headers)
 
+#use of observer pattern
         if self.page.is_error():
-            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
+            log('  └╴ Appointment not available anymore :( %s', self.page.subject.some_business_logic())
             return False
 
         playsound('ding.mp3')
@@ -492,7 +547,7 @@ class Doctolib(LoginBrowser):
 
             if self.page.is_error():
                 log('  └╴ Appointment not available anymore :( %s',
-                    self.page.get_error())
+                    self.page.subject.some_business_logic())
                 return False
 
         a_id = self.page.doc['id']
