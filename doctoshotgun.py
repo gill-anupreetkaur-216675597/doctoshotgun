@@ -571,6 +571,7 @@ class Doctolib(LoginBrowser):
             data['second_slot'] = slot_date_second
             self.appointment.go(data=json.dumps(data), headers=headers)
 
+    #use of observer pattern  
             if self.page.is_error():
                 log('  └╴ Appointment not available anymore :( %s',
                     self.page.subject.some_business_logic())
